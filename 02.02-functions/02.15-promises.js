@@ -30,6 +30,32 @@ function obtenerUsuario(id) {
 }
 
 // ------------------------------------------------------------
+// OJO: "resolve" y "reject" no son palabras reservadas
+// ------------------------------------------------------------
+// Son solo los NOMBRES que le pusimos a los dos parámetros del
+// executor. Podríamos llamarlos como quisiéramos: lo que importa
+// es el ORDEN. El 1er parámetro SIEMPRE resuelve (-> va al .then)
+// y el 2do parámetro SIEMPRE rechaza (-> va al .catch).
+function dividir(a, b) {
+  // Acá, a propósito, los llamamos "ok" y "falla".
+  return new Promise((ok, falla) => {
+    if (b === 0) {
+      falla(new Error("No se puede dividir por cero")); // 2do param -> .catch
+      return;
+    }
+    ok(a / b); // 1er param -> .then
+  });
+}
+
+dividir(10, 2)
+  .then((resultado) => console.log("dividir(10, 2) ->", resultado)) // 5
+  .catch((error) => console.log("dividir(10, 2) -> error:", error.message));
+
+dividir(10, 0)
+  .then((resultado) => console.log("dividir(10, 0) ->", resultado))
+  .catch((error) => console.log("dividir(10, 0) -> error:", error.message));
+
+// ------------------------------------------------------------
 // 2) EJECUCIÓN / CONSUMO de una promesa
 // ------------------------------------------------------------
 // .then()    -> se ejecuta cuando la promesa se resuelve
@@ -122,4 +148,30 @@ Promise.allSettled([pizza, conError])
     // Cada elemento es:
     //   { status: "fulfilled", value: ... }
     //   { status: "rejected",  reason: ... }
+  });
+
+// ------------------------------------------------------------
+// Promise.any() -> devuelve la PRIMERA que se RESUELVA (ignora
+// las que se rechazan). Si TODAS se rechazan, any() se rechaza
+// con un AggregateError que junta todos los errores en .errors.
+//
+// Se parece a race(), pero:
+//   - race() se queda con la primera que TERMINE (aunque falle).
+//   - any()  se queda con la primera que tenga ÉXITO.
+// ------------------------------------------------------------
+const lento = new Promise((resolve) =>
+  setTimeout(() => resolve("🐢 Llegué tarde, pero llegué"), 1000)
+);
+const falla = new Promise((_, reject) =>
+  setTimeout(() => reject(new Error("💥 Fallé enseguida")), 200)
+);
+
+Promise.any([falla, lento])
+  .then((primeroConExito) => {
+    // Ignora "falla" (rechazada) y toma "lento" (resuelta).
+    console.log("Promise.any -> primero con éxito:", primeroConExito);
+  })
+  .catch((error) => {
+    // Solo llega acá si TODAS se rechazan.
+    console.log("Promise.any -> todas fallaron:", error.errors);
   });
